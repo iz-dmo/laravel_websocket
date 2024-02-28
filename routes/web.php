@@ -29,6 +29,8 @@ Route::get('load-messages',[UserController::class,'Loading'])->name('load-messag
 Route::post('delete-messages',[UserController::class,'Delete'])->name('delete-messages');
 Route::post('edit-messages',[UserController::class,'Edit'])->name('edit-messages');
 
+// request message
+Route::post('request-messages',[UserController::class,'MessageRequest'])->name('request-messages');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

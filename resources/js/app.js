@@ -10,15 +10,55 @@ $(document).ready(function(){
 
     $('.chat-section').hide();
     $('.title-click').show();
-    $('.user-list').on('click',function(){
-        $('#chat-container').html('');
-        var userID = $(this).attr('data-id');
+    $('.request-form').on('submit',function(e){
+        e.preventDefault();
+        var userID = $(this).closest('.user-list').data('id');
         receiver_id = userID;
-        $('.chat-section').show();
-        $('.title-click').hide();
-        loadOldChat();
+        var btn_text = $(this).find('.request-btn').text('Cancle').css('background-color','gray');
+        $.ajax({
+            headers : {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            url : "request-messages",
+            type : "POST",
+            data : {
+                sender_id : sender_id,
+                receiver_id : receiver_id,
+                status : 'pending',                
+            },
+            success : function(response){
+                if(response.success){
+                    // var status_messages = response.msg;
+                    // for (let i = 0; i < status_messages.length; i++) {
+                    //     if(status_messages[i].sender_id == sender_id){
+                    //         return btn_text;
+                    //     }else{
+                    //         btn_text.remove();
+                    //         let html = `
+                    //         <form action="" class="option-form">
+                    //             <button id="accept-btn" class="btn btn-success accept-btn" type="submit">Accept</button>
+                    //             <button id="reject-btn" class="btn btn-danger reject-btn" type="submit">Cancle</button>
+                    //         </form>
+                    //         `;
+                    //         $('#option-div').append(html);
+                    //     }
+                        
+                    // }
+                }
+            }
+
+        });
         
     });
+    // $('.user-list').on('click',function(){
+    //     $('#chat-container').html('');
+    //     var userID = $(this).attr('data-id');
+    //     receiver_id = userID;
+    //     $('.chat-section').show();
+    //     $('.title-click').hide();
+    //     loadOldChat();
+        
+    // });
 
     // chat save
     $('#chat-form').submit(function(e){
@@ -256,3 +296,19 @@ Echo.private('edit-message')
     $('#'+event.data.id+'-chat').find('.message-span').text(event.data.message);
     $('#'+event.data.id+'-chat').find('.edit-span').attr('data-message',event.data.message);
 })
+
+Echo.private('request-status')
+.listen('.getRequestMessage',(event) => {
+    if(sender_id == event.request_status.receiver_id){
+        $('#'+event.request_status.sender_id+'-remove-btn').remove();
+        let html = `
+        <form action="" class="option-form">
+            <button id="accept-btn" class="btn btn-success accept-btn" type="submit">Accept</button>
+            <button id="reject-btn" class="btn btn-danger reject-btn" type="submit">Cancle</button>
+        </form>
+        `;
+        $('#'+event.request_status.sender_id+'-option').append(html);
+    }
+    // console.log(event);
+    
+});

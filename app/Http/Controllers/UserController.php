@@ -6,8 +6,11 @@ use App\Models\Chat;
 use App\Models\User;
 use App\Events\MessageEvent;
 use Illuminate\Http\Request;
+use App\Models\RequestMessage;
 use App\Events\MessageEditEvent;
 use App\Events\MessageDeleteEvent;
+use App\Events\RequestEvent;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -77,4 +80,21 @@ class UserController extends Controller
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
     }
+
+    // Request to send message
+    public function MessageRequest(Request $request)
+    {
+        try {
+            $message_request = RequestMessage::create([
+                'sender_id' => Auth::id(),
+                "receiver_id" => $request->receiver_id,
+                "status" => $request->status,
+            ]);
+            event(new RequestEvent($message_request));
+            return response()->json(['success'=> true, 'msg' => $message_request->status]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
+
 }

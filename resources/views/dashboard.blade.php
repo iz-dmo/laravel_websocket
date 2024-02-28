@@ -85,6 +85,12 @@
                         <li class="list-group-item pointer user-list" data-id="{{ $user->id }}">
                             {{$user->name}}
                             <b><sup id="{{$user->id}}-status" class="offline-status text-end">Offline</sup></b>
+                            <form action="" class="request-form">
+                                <button id="{{$user->id}}-remove-btn"  class="btn btn-primary request-btn" type="submit">Request</button>
+                            </form>
+                            <div id="{{$user->id}}-option">
+
+                            </div>
                         </li>
                         @endforeach
                     </ul>
