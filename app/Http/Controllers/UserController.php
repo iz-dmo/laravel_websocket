@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\DeleteRequestEvent;
 use App\Models\Chat;
 use App\Models\User;
 use App\Events\MessageEvent;
@@ -81,6 +82,12 @@ class UserController extends Controller
         }
     }
 
+    /* ------
+
+        Request Accept Reject path 
+
+    */
+
     // Request to send message
     public function MessageRequest(Request $request)
     {
@@ -91,7 +98,40 @@ class UserController extends Controller
                 "status" => $request->status,
             ]);
             event(new RequestEvent($message_request));
-            return response()->json(['success'=> true, 'msg' => $message_request->status]);
+            return response()->json(['success'=> true, 'msg' => $message_request]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
+        }
+    }
+
+    // delete requested data 
+    public function DeleteRequest(Request $request)
+    {
+        try {
+            RequestMessage::where('id',$request->id)->delete();
+            event(new DeleteRequestEvent($request->all()));
+            return response()->json(['success' => true, 'data' => 'deleted message successfully']);
+
+        } catch (\Exception $e) {
+            //throw $th;
+        }
+    }
+
+    // load old requested data
+    public function LoadingRequest(Request $request)
+    {
+        $request_data = RequestMessage::where(function($query) use ($request){
+            $query->where('sender_id','=',Auth::id())
+            ->orWhere('sender_id','=',$request->receiver_id)
+            ->orWhere('status','pending');
+        })->where(function($query) use ($request){
+            $query->where('receiver_id','=',$request->receiver_id)
+            ->orWhere('receiver_id','=',Auth::id())
+            ->orWhere('status','pending');
+        })->get();
+        dd($request_data);
+        try {
+            return response()->json(['success' => true, 'data' => $request_data]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }

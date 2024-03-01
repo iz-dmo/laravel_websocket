@@ -88,9 +88,6 @@
                             <form action="" class="request-form">
                                 <button id="{{$user->id}}-remove-btn"  class="btn btn-primary request-btn" type="submit">Request</button>
                             </form>
-                            <div id="{{$user->id}}-option">
-
-                            </div>
                         </li>
                         @endforeach
                     </ul>

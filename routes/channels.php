@@ -36,3 +36,7 @@ Broadcast::channel('edit-message',function($user){
 Broadcast::channel('request-status',function($user){
     return $user;
 });
+
+Broadcast::channel('request-delete',function($user){
+    return $user;
+});
