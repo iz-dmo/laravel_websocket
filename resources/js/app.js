@@ -7,6 +7,7 @@ window.Alpine = Alpine;
 Alpine.start();
 
 $(document).ready(function(){
+    loadOldRequest();
     $('.chat-section').hide();
     $('.title-click').show();
     // request path
@@ -45,6 +46,7 @@ $(document).ready(function(){
         // request cancle
         else { 
             var id = $('#delete_request').attr('data-id');
+            console.log(id);
             $.ajax({
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -263,13 +265,31 @@ function loadOldRequest(){
         },
         url : "request-old-messages",
         type : "GET",
-        data : {
-            sender_id : sender_id,
-            receiver_id : receiver_id,
-        },
         success : function(response){
             if(response.success){
-
+                response.data.forEach(function(old_request) {
+                    // console.log(old_request);
+                    if(old_request.status == "pending"){
+                        if(old_request.sender_id == sender_id){
+                            var add_dir = $('.user-list[data-id="' + old_request.receiver_id + '"] .request-form');
+                            add_dir.find('button').text("Cancel").css('background-color', 'gray');
+                            let html = `
+                                <input type="hidden" name="id" id="delete_request" data-id="`+old_request.id+`">                        
+                            `;
+                            add_dir.append(html);
+                        }
+                        if (old_request.receiver_id == sender_id) {
+                            // console.log('hi');
+                            var add_dir_receiver = $('.user-list[data-id="' + old_request.sender_id + '"] .request-form');
+                            add_dir_receiver.find($('#' + old_request.sender_id + '-remove-btn')).replaceWith(`
+                                <button id="` + old_request.sender_id + `-accept-btn" class="btn btn-success accept-btn" type="submit">Accept</button>
+                                <button id="` + old_request.sender_id + `-reject-btn" class="btn btn-danger reject-btn" type="submit">Cancle</button>
+                            `);
+                        }
+                    }
+                });
+            }else{
+                alert(response.msg);
             }
         },
     });
@@ -338,18 +358,18 @@ Echo.private('request-status')
 .listen('.getRequestMessage',(event) => {
     // console.log(event);
     if(sender_id == event.request_status.receiver_id || receiver_id == event.request_status.sender_id){
-        // $('#'+event.request_status.sender_id+'-remove-btn').remove();
         $('#' + event.request_status.sender_id + '-remove-btn').replaceWith(`
             <button id="`+event.request_status.sender_id+`-accept-btn" class="btn btn-success accept-btn" type="submit">Accept</button>
             <button id="`+event.request_status.sender_id+`-reject-btn" class="btn btn-danger reject-btn" type="submit">Cancel</button>
         `);
+        loadOldRequest();
     }
     
 });
 
-// cancle request
+// cancle requeste
 Echo.private('request-delete')
-.listen('DeleteRequestEvent',(data) => {
+.listen('DeleteRequestEvnt',(data) => {
     // console.log(data.id);
     if(sender_id == data.id.receiver_id){
         $('#' + data.id.sender_id + '-accept-btn').remove();
@@ -360,3 +380,6 @@ Echo.private('request-delete')
     `;
     $('.user-list[data-id="' + data.id.sender_id + '"] .request-form').append(requestButtonHtml); 
 });
+
+//old request data
+

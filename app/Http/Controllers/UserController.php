@@ -120,16 +120,8 @@ class UserController extends Controller
     // load old requested data
     public function LoadingRequest(Request $request)
     {
-        $request_data = RequestMessage::where(function($query) use ($request){
-            $query->where('sender_id','=',Auth::id())
-            ->orWhere('sender_id','=',$request->receiver_id)
-            ->orWhere('status','pending');
-        })->where(function($query) use ($request){
-            $query->where('receiver_id','=',$request->receiver_id)
-            ->orWhere('receiver_id','=',Auth::id())
-            ->orWhere('status','pending');
-        })->get();
-        dd($request_data);
+        $request_data = RequestMessage::where('sender_id',Auth::id())
+                    ->orWhere('receiver_id',Auth::id())->get();
         try {
             return response()->json(['success' => true, 'data' => $request_data]);
         } catch (\Exception $e) {
