@@ -8,68 +8,9 @@ Alpine.start();
 
 $(document).ready(function(){
     loadOldRequest();
+    loadOldChat();
     $('.chat-section').hide();
     $('.title-click').show();
-    // request path
-    $('.request-form').on('submit',function(e){
-        e.preventDefault();
-        var userID = $(this).closest('.user-list').data('id');
-        receiver_id = userID;
-        var btn_text = $(this).find('.request-btn');
-        var isCancel_btn = btn_text.text().trim() === 'Cancel'; 
-
-        if (!isCancel_btn) {
-            $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                url: "request-messages",
-                type: "POST",
-                data: {
-                    sender_id: sender_id,
-                    receiver_id: receiver_id,
-                    status: 'pending',                
-                },
-                success: function(response) {
-                    if (response.success) {
-                        btn_text.text('Cancel').css('background-color', 'gray');
-                        let html = `
-                            <input type="hidden" name="id" id="delete_request" data-id="`+response.msg.id+`">                        
-                        `;
-                        btn_text.closest('.request-form').append(html);
-                        } else {
-                        alert(response.msg);
-                    }
-                }
-            });
-        } 
-        // request cancle
-        else { 
-            var id = $('#delete_request').attr('data-id');
-            console.log(id);
-            $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                url: "delete-request-messages", 
-                type: "POST",
-                data: {
-                    sender_id : sender_id,
-                    receiver_id : receiver_id,
-                    id : id,
-                },
-                success: function(response) {
-                    if (response.success) {
-                        btn_text.text('Request').css('background-color', '#0275d8'); 
-                    } else {
-                        alert(response.msg);
-                    }
-                }
-            });
-        }
-
-        
-    });
     // $('.user-list').on('click',function(){
     //     $('#chat-container').html('');
     //     var userID = $(this).attr('data-id');
@@ -80,7 +21,7 @@ $(document).ready(function(){
         
     // });
 
-    // chat save
+    // chat_message save
     $('#chat-form').submit(function(e){
         e.preventDefault();
         // $('#send-btn').prop('disabled', true);
@@ -194,6 +135,88 @@ $(document).ready(function(){
 
         });
     })
+
+    // --- Request Path ------ //
+
+    // request pending data 
+    $('.request-form').on('submit',function(e){
+        var userID = $(this).closest('.user-list').data('id');
+        receiver_id = userID;
+        e.preventDefault();
+        var btn_text = $(this).find('.request-btn');
+        var isCancel_btn = btn_text.text().trim() === 'Cancel'; 
+
+        if (btn_text.text() ==  'Request') {
+            btn_text.prop('disabled', true);
+            $.ajax({
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                url: "request-messages",
+                type: "POST",
+                data: {
+                    sender_id: sender_id,
+                    receiver_id: receiver_id,
+                    status: 'pending',                
+                },
+                success: function(response) {
+                    if (response.success) {
+                        let html = `
+                            <input type="hidden" name="id" id="delete_request" data-id="`+response.msg.id+`">                        
+                        `;
+                        btn_text.closest('.request-form').append(html);
+                        btn_text.prop('disabled', true);
+                    } else {
+                        alert(response.msg);
+                    }
+                },
+                complete: function() {
+                    // Re-enable the button after the request is complete
+                    btn_text.prop('disabled', false);
+                }
+            });
+        }
+       
+
+        
+    });
+
+    // delete request 
+    $('.request-form').submit('.reject-btn',function(e){
+        e.preventDefault();
+        var get_id = $(this).find('#delete_request').data('id');
+        $(this).find('.reject-btn').prop('disabled', true);
+        $.ajax({
+            headers : {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            url : "delete-request-messages",
+            type : "POST",
+            data : {
+                id : get_id,
+                sender_id : sender_id,
+                receiver_id : receiver_id,
+            },
+            success : function(response){
+                if(response.success){
+                    // console.log(response);
+                    $('#' + response.data.receiver_id + '-remove-btn').remove();
+                    let requestHtml = `
+                        <button id="`+response.data.receiver_id+`-remove-btn" class="btn btn-primary request-btn" type="submit">Request</button>
+                    `;
+                    $('.user-list[data-id="' + response.data.receiver_id + '"] .request-form').append(requestHtml);
+                    $('#' + response.data.receiver_id + '-accept-btn').remove();
+                    $('#' + response.data.receiver_id + '-reject-btn').remove();
+                }                
+            },
+            complete: function() {
+                // Re-enable the button after the request is complete
+                $(this).find('.reject-btn').prop('disabled', false);
+            }
+
+        });
+        
+    });
 });
 
 // load old data chat
@@ -258,6 +281,7 @@ function loadOldChat(){
     });
 }
 
+// load old request data 
 function loadOldRequest(){
     $.ajax({
         headers : {
@@ -270,7 +294,7 @@ function loadOldRequest(){
                 response.data.forEach(function(old_request) {
                     // console.log(old_request);
                     if(old_request.status == "pending"){
-                        if(old_request.sender_id == sender_id){
+                        if(old_request.sender_id == sender_id || old_request.receiver_id == receiver_id){
                             var add_dir = $('.user-list[data-id="' + old_request.receiver_id + '"] .request-form');
                             add_dir.find('button').text("Cancel").css('background-color', 'gray');
                             let html = `
@@ -278,15 +302,20 @@ function loadOldRequest(){
                             `;
                             add_dir.append(html);
                         }
-                        if (old_request.receiver_id == sender_id) {
+                        if (old_request.receiver_id == sender_id ) {
                             // console.log('hi');
                             var add_dir_receiver = $('.user-list[data-id="' + old_request.sender_id + '"] .request-form');
-                            add_dir_receiver.find($('#' + old_request.sender_id + '-remove-btn')).replaceWith(`
-                                <button id="` + old_request.sender_id + `-accept-btn" class="btn btn-success accept-btn" type="submit">Accept</button>
-                                <button id="` + old_request.sender_id + `-reject-btn" class="btn btn-danger reject-btn" type="submit">Cancle</button>
-                            `);
+                            add_dir_receiver.find($('#' + old_request.sender_id + '-remove-btn')).remove();
+                            let html = `
+                                <input type="hidden" name="id" id="delete_request" data-id="`+old_request.id+`">     
+                                <button id="` + old_request.sender_id + `-accept-btn" class="btn btn-success accept-btn" type="submit" data-action="accept">Accept</button>
+                                <button id="` + old_request.sender_id + `-reject-btn" class="btn btn-danger reject-btn" type="submit" data-action="reject">Cancel</button>                   
+                            `;
+                            add_dir_receiver.append(html);
+                            
                         }
                     }
+                    // accept status and start message function & reject status and remove from database 
                 });
             }else{
                 alert(response.msg);
@@ -294,6 +323,7 @@ function loadOldRequest(){
         },
     });
 }
+
 
 // scroll chat
 function ScrollChat(){
@@ -356,30 +386,31 @@ Echo.private('edit-message')
 // sending request
 Echo.private('request-status')
 .listen('.getRequestMessage',(event) => {
-    // console.log(event);
-    if(sender_id == event.request_status.receiver_id || receiver_id == event.request_status.sender_id){
-        $('#' + event.request_status.sender_id + '-remove-btn').replaceWith(`
+    if(sender_id == event.request_status.receiver_id){
+        alert('hi');
+        $('#' + event.request_status.receiver_id + '-remove-btn').remove();
+        
+        $('.user-list[data-id="' + event.request_status.sender_id + '"] .request-form').append(`                      
             <button id="`+event.request_status.sender_id+`-accept-btn" class="btn btn-success accept-btn" type="submit">Accept</button>
             <button id="`+event.request_status.sender_id+`-reject-btn" class="btn btn-danger reject-btn" type="submit">Cancel</button>
         `);
-        loadOldRequest();
     }
+    loadOldRequest();
     
 });
 
-// cancle requeste
+// cancel request
 Echo.private('request-delete')
-.listen('DeleteRequestEvnt',(data) => {
-    // console.log(data.id);
+.listen('DeleteRequestEvent',(data) => {
     if(sender_id == data.id.receiver_id){
+        // alert('ok');
         $('#' + data.id.sender_id + '-accept-btn').remove();
         $('#' + data.id.sender_id + '-reject-btn').remove();
+        $('#'+ data.id.sender_id+'-remove-btn').remove();
+        let requestButtonHtml = `
+            <button id="`+data.id.sender_id+`-remove-btn" class="btn btn-primary request-btn" type="submit">Request</button>
+        `;
+        $('.user-list[data-id="' + data.id.sender_id + '"] .request-form').append(requestButtonHtml);
     }
-    let requestButtonHtml = `
-        <button id="`+data.id.sender_id+`-remove-btn" class="btn btn-primary request-btn" type="submit">Request</button>
-    `;
-    $('.user-list[data-id="' + data.id.sender_id + '"] .request-form').append(requestButtonHtml); 
+
 });
-
-//old request data
-

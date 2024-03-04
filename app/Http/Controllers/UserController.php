@@ -110,10 +110,10 @@ class UserController extends Controller
         try {
             RequestMessage::where('id',$request->id)->delete();
             event(new DeleteRequestEvent($request->all()));
-            return response()->json(['success' => true, 'data' => 'deleted message successfully']);
+            return response()->json(['success' => true, 'data' => $request->all()]);
 
         } catch (\Exception $e) {
-            //throw $th;
+            return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
     }
 
@@ -127,6 +127,20 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
+    }
+
+    // Update Request Message
+    public function UpdateRequest(Request $request)
+    {
+        // $request_data = RequestMessage::where()
+        $request_data = RequestMessage::findOrFail($request->id);
+        $request_data->update([
+            'status' => $request->status,
+        ]);
+        if($request->status == 'reject'){
+            return response()->json(['success'=> true , 'data' => $request->all()]);
+        }
+
     }
 
 }
