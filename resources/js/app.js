@@ -12,7 +12,7 @@ $(document).ready(function(){
     $('.chat-section').hide();
     $('.title-click').show();
     $('.user-list').on('click',function(){
-        $('#chat-container').html('');
+        // $('#chat-container').html('');
         var userID = $(this).attr('data-id');
         receiver_id = userID;
     });
@@ -193,7 +193,6 @@ $(document).ready(function(){
                     }                
                 },
                 complete: function() {
-                    // Re-enable the button after the request is complete
                     $(this).find('.reject-btn').prop('disabled', false);
                 }
 
@@ -208,7 +207,6 @@ $(document).ready(function(){
     $(document).on('submit', '.reject-form', function(e) {
         e.preventDefault();
         var get_id = $(this).find('#reject_request').data('id');
-        alert(get_id);
         $(this).find('.reject-btn').prop('disabled', true);
         $.ajax({
             headers : {
@@ -267,7 +265,7 @@ $(document).ready(function(){
                         <small class="text-secondary">Say Hi 👋</small>
                     `;
                     $('.user-list[data-id="' + response.data.receiver_id + '"] .request-form').append(html);
-                    $('.user-list').on('click',function(){
+                    $('.user-list[data-id="' + response.data.receiver_id + '"]').on('click',function(){
                         $('#chat-container').html('');
                         $('.chat-section').show();
                         $('.title-click').hide();
@@ -355,9 +353,8 @@ function loadOldRequest(){
         success : function(response){
             if(response.success){
                 response.data.forEach(function(old_request) {
-                    // console.log(old_request);
                     if(old_request.status == "pending"){
-                        if(old_request.sender_id == sender_id || old_request.receiver_id == receiver_id){
+                        if(old_request.sender_id == sender_id){
                             var add_dir = $('.user-list[data-id="' + old_request.receiver_id + '"] .request-form');
                             add_dir.find('button').text("Cancel").css('background-color', 'gray');
                             let html = `
@@ -418,7 +415,7 @@ function loadOldRequest(){
                                 <small class="text-secondary">Say Hi 👋</small>
                             `;
                             add_dir.append(html);
-                            $('.user-list').on('click',function(){
+                            $('.user-list[data-id="' + old_request.receiver_id + '"]').on('click',function(){
                                 $('#chat-container').html('');
                                 $('.chat-section').show();
                                 $('.title-click').hide();
@@ -433,7 +430,7 @@ function loadOldRequest(){
                                 <small class="text-secondary">Say Hi 👋</small>
                             `;
                             dir_receiver.append(html);
-                            $('.user-list').on('click',function(){
+                            $('.user-list[data-id="' + old_request.sender_id + '"]').on('click',function(){
                                 $('#chat-container').html('');
                                 $('.chat-section').show();
                                 $('.title-click').hide();
@@ -581,7 +578,7 @@ Echo.private('request-accept')
             <small class="text-secondary">Say Hi 👋</small>
          `;
         $('.user-list[data-id="' + data.accept_data.sender_id + '"] .request-form').append(html);
-        $('.user-list').on('click',function(){
+        $('.user-list[data-id="' + data.accept_data.sender_id+'').on('click',function(){
             $('#chat-container').html('');
             $('.chat-section').show();
             $('.title-click').hide();
