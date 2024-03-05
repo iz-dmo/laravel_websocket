@@ -11,15 +11,11 @@ $(document).ready(function(){
     loadOldChat();
     $('.chat-section').hide();
     $('.title-click').show();
-    // $('.user-list').on('click',function(){
-    //     $('#chat-container').html('');
-    //     var userID = $(this).attr('data-id');
-    //     receiver_id = userID;
-    //     $('.chat-section').show();
-    //     $('.title-click').hide();
-    //     loadOldChat();
-        
-    // });
+    $('.user-list').on('click',function(){
+        $('#chat-container').html('');
+        var userID = $(this).attr('data-id');
+        receiver_id = userID;
+    });
 
     // chat_message save
     $('#chat-form').submit(function(e){
@@ -79,7 +75,6 @@ $(document).ready(function(){
     $('#delete-form').on('submit',function(e){
         e.preventDefault();
         var id = $('#delete-chat-id').val();
-        // console.log(id);
         $.ajax({
             headers : {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -90,7 +85,6 @@ $(document).ready(function(){
                 id : id ,
             },
             success : function(response){
-                // alert(response.data);
                 if(response.success){
                     $('#'+id+'-chat').remove();
                     $('#exampleModal').modal('hide');
@@ -110,7 +104,6 @@ $(document).ready(function(){
         e.preventDefault();
         var edit_id = $('#edit-chat-id').val();
         var edit_message = $('#edit-message').val();
-        // console.log(edit_message);
         $.ajax({
             headers : {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -136,12 +129,10 @@ $(document).ready(function(){
         });
     })
 
-    // --- Request Path ------ //
+    //------------------------- --- Request Path ------ -----------------------//
 
     // request pending data 
     $('.request-form').on('submit',function(e){
-        var userID = $(this).closest('.user-list').data('id');
-        receiver_id = userID;
         e.preventDefault();
         var btn_text = $(this).find('.request-btn');
         var isCancel_btn = btn_text.text().trim() === 'Cancel'; 
@@ -161,6 +152,7 @@ $(document).ready(function(){
                 },
                 success: function(response) {
                     if (response.success) {
+                        btn_text.text('Cancel').css('background-color','gray');
                         let html = `
                             <input type="hidden" name="id" id="delete_request" data-id="`+response.msg.id+`">                        
                         `;
@@ -171,9 +163,40 @@ $(document).ready(function(){
                     }
                 },
                 complete: function() {
-                    // Re-enable the button after the request is complete
                     btn_text.prop('disabled', false);
                 }
+            });
+        }
+        if(isCancel_btn){
+            var get_id = $(this).find('#delete_request').data('id');
+            $(this).find('.reject-btn').prop('disabled', true);
+            $.ajax({
+                headers : {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                url : "delete-request-messages",
+                type : "POST",
+                data : {
+                    id : get_id,
+                    sender_id : sender_id,
+                    receiver_id : receiver_id,
+                },
+                success : function(response){
+                    if(response.success){
+                        $('#' + response.data.receiver_id + '-remove-btn').remove();
+                        let requestHtml = `
+                            <button id="`+response.data.receiver_id+`-remove-btn" class="btn btn-primary request-btn" type="submit">Request</button>
+                        `;
+                        $('.user-list[data-id="' + response.data.receiver_id + '"] .request-form').append(requestHtml);
+                        $('#' + response.data.receiver_id + '-accept-btn').remove();
+                        $('#' + response.data.receiver_id + '-reject-btn').remove();
+                    }                
+                },
+                complete: function() {
+                    // Re-enable the button after the request is complete
+                    $(this).find('.reject-btn').prop('disabled', false);
+                }
+
             });
         }
        
@@ -182,9 +205,10 @@ $(document).ready(function(){
     });
 
     // delete request 
-    $('.request-form').submit('.reject-btn',function(e){
+    $(document).on('submit', '.reject-form', function(e) {
         e.preventDefault();
-        var get_id = $(this).find('#delete_request').data('id');
+        var get_id = $(this).find('#reject_request').data('id');
+        alert(get_id);
         $(this).find('.reject-btn').prop('disabled', true);
         $.ajax({
             headers : {
@@ -210,16 +234,55 @@ $(document).ready(function(){
                 }                
             },
             complete: function() {
-                // Re-enable the button after the request is complete
                 $(this).find('.reject-btn').prop('disabled', false);
             }
 
         });
         
     });
+
+    // accept request
+    $(document).on('submit', '.accept-form', function(e) {
+        e.preventDefault();
+        var id = $(this).find('#accept_request').data('id');
+        $(this).find('.accept-btn').prop('disabled',true);
+        $.ajax({
+            headers : {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            url : "update-request-messages",
+            type : "POST",
+            data : {
+                sender_id : sender_id,
+                receiver_id : receiver_id,
+                status : "accept",
+                id : id ,
+            },
+            success : function(response){
+                if(response.success){
+                    console.log(response.data);
+                    $('#'+response.data.receiver_id+'-reject-btn').remove();
+                    $('#'+response.data.receiver_id+'-accept-btn').remove();
+                    let html = `
+                        <small class="text-secondary">Say Hi 👋</small>
+                    `;
+                    $('.user-list[data-id="' + response.data.receiver_id + '"] .request-form').append(html);
+                    $('.user-list').on('click',function(){
+                        $('#chat-container').html('');
+                        $('.chat-section').show();
+                        $('.title-click').hide();
+                        loadOldChat();
+                    })
+                    
+                }
+            }
+        });
+        
+    });
+    
 });
 
-// load old data chat
+// load old data chat_message
 function loadOldChat(){
     $.ajax({
         headers : {
@@ -303,19 +366,82 @@ function loadOldRequest(){
                             add_dir.append(html);
                         }
                         if (old_request.receiver_id == sender_id ) {
-                            // console.log('hi');
                             var add_dir_receiver = $('.user-list[data-id="' + old_request.sender_id + '"] .request-form');
                             add_dir_receiver.find($('#' + old_request.sender_id + '-remove-btn')).remove();
-                            let html = `
-                                <input type="hidden" name="id" id="delete_request" data-id="`+old_request.id+`">     
-                                <button id="` + old_request.sender_id + `-accept-btn" class="btn btn-success accept-btn" type="submit" data-action="accept">Accept</button>
-                                <button id="` + old_request.sender_id + `-reject-btn" class="btn btn-danger reject-btn" type="submit" data-action="reject">Cancel</button>                   
-                            `;
-                            add_dir_receiver.append(html);
+                            var acceptForm = $('<form>');
+                            acceptForm.addClass('accept-form');
+
+                            var acceptHiddenInput = $('<input>');
+                            acceptHiddenInput.attr('type', 'hidden');
+                            acceptHiddenInput.attr('name', 'id');
+                            acceptHiddenInput.attr('data-id', old_request.id);
+                            acceptHiddenInput.attr('id','accept_request');
+                            acceptForm.append(acceptHiddenInput);
+
+                            var acceptButton = $('<button>');
+                            acceptButton.attr('id', old_request.sender_id + '-accept-btn');
+                            acceptButton.addClass('btn btn-success accept-btn');
+                            acceptButton.attr('type', 'submit');
+                            acceptButton.text('Accept');
+                            acceptForm.append(acceptButton);
+
+                            $('.user-list[data-id="' + old_request.sender_id + '"]').append(acceptForm);
+
+                            var rejectForm = $('<form>');
+                            rejectForm.addClass('reject-form');
+
+                            var rejectHiddenInput = $('<input>');
+                            rejectHiddenInput.attr('type', 'hidden');
+                            rejectHiddenInput.attr('name', 'id');
+                            rejectHiddenInput.attr('data-id', old_request.id);
+                            rejectHiddenInput.attr('id','reject_request')
+                            rejectForm.append(rejectHiddenInput);
+
+                            var rejectButton = $('<button>');
+                            rejectButton.attr('id', old_request.sender_id + '-reject-btn');
+                            rejectButton.addClass('btn btn-danger reject-btn');
+                            rejectButton.attr('type', 'submit');
+                            rejectButton.text('Cancel');
+                            rejectForm.append(rejectButton);
+
+                            $('.user-list[data-id="' + old_request.sender_id + '"]').append(rejectForm);
+
                             
                         }
                     }
-                    // accept status and start message function & reject status and remove from database 
+                    // accept status and start message function 
+                    if(old_request.status == 'accept'){
+                        if(old_request.sender_id == sender_id){
+                            var add_dir = $('.user-list[data-id="' + old_request.receiver_id + '"] .request-form');
+                            add_dir.find('button').remove();
+                            let html = `
+                                <small class="text-secondary">Say Hi 👋</small>
+                            `;
+                            add_dir.append(html);
+                            $('.user-list').on('click',function(){
+                                $('#chat-container').html('');
+                                $('.chat-section').show();
+                                $('.title-click').hide();
+                                loadOldChat();
+                                
+                            });
+                        }
+                        if(old_request.receiver_id == sender_id){
+                            let dir_receiver = $('.user-list[data-id="' + old_request.sender_id + '"] .request-form');
+                            dir_receiver.find('button').remove();
+                            let html = `
+                                <small class="text-secondary">Say Hi 👋</small>
+                            `;
+                            dir_receiver.append(html);
+                            $('.user-list').on('click',function(){
+                                $('#chat-container').html('');
+                                $('.chat-section').show();
+                                $('.title-click').hide();
+                                loadOldChat();
+                                
+                            });
+                        }
+                    }
                 });
             }else{
                 alert(response.msg);
@@ -387,15 +513,49 @@ Echo.private('edit-message')
 Echo.private('request-status')
 .listen('.getRequestMessage',(event) => {
     if(sender_id == event.request_status.receiver_id){
-        alert('hi');
-        $('#' + event.request_status.receiver_id + '-remove-btn').remove();
+        $('#' + event.request_status.sender_id + '-remove-btn').remove();
         
-        $('.user-list[data-id="' + event.request_status.sender_id + '"] .request-form').append(`                      
-            <button id="`+event.request_status.sender_id+`-accept-btn" class="btn btn-success accept-btn" type="submit">Accept</button>
-            <button id="`+event.request_status.sender_id+`-reject-btn" class="btn btn-danger reject-btn" type="submit">Cancel</button>
-        `);
+        // create accept form and btn
+        var acceptForm = $('<form>');
+        acceptForm.addClass('accept-form');
+
+        var acceptHiddenInput = $('<input>');
+        acceptHiddenInput.attr('type', 'hidden');
+        acceptHiddenInput.attr('name', 'id');
+        acceptHiddenInput.attr('data-id', event.request_status.id);
+        acceptHiddenInput.attr('id','accept_request');
+        acceptForm.append(acceptHiddenInput);
+
+        var acceptButton = $('<button>');
+        acceptButton.attr('id', event.request_status.sender_id + '-accept-btn');
+        acceptButton.addClass('btn btn-success accept-btn');
+        acceptButton.attr('type', 'submit');
+        acceptButton.text('Accept');
+        acceptForm.append(acceptButton);
+        $('.user-list[data-id="' + event.request_status.sender_id + '"]').append(acceptForm);
+
+        // create reject form and btn 
+        var rejectForm = $('<form>');
+        rejectForm.addClass('reject-form');
+
+        var rejectHiddenInput = $('<input>');
+        rejectHiddenInput.attr('type', 'hidden');
+        rejectHiddenInput.attr('name', 'id');
+        rejectHiddenInput.attr('data-id', event.request_status.id);
+        rejectHiddenInput.attr('id','reject_request')
+        rejectForm.append(rejectHiddenInput);
+
+        var rejectButton = $('<button>');
+        rejectButton.attr('id', event.request_status.sender_id + '-reject-btn');
+        rejectButton.addClass('btn btn-danger reject-btn');
+        rejectButton.attr('type', 'submit');
+        rejectButton.text('Cancel');
+        rejectForm.append(rejectButton);
+
+        $('.user-list[data-id="' + event.request_status.sender_id + '"]').append(rejectForm);
+
     }
-    loadOldRequest();
+    // loadOldRequest();
     
 });
 
@@ -403,14 +563,29 @@ Echo.private('request-status')
 Echo.private('request-delete')
 .listen('DeleteRequestEvent',(data) => {
     if(sender_id == data.id.receiver_id){
-        // alert('ok');
+        $('#'+ data.id.sender_id+'-remove-btn').remove();
         $('#' + data.id.sender_id + '-accept-btn').remove();
         $('#' + data.id.sender_id + '-reject-btn').remove();
-        $('#'+ data.id.sender_id+'-remove-btn').remove();
         let requestButtonHtml = `
             <button id="`+data.id.sender_id+`-remove-btn" class="btn btn-primary request-btn" type="submit">Request</button>
         `;
         $('.user-list[data-id="' + data.id.sender_id + '"] .request-form').append(requestButtonHtml);
     }
+});
 
+Echo.private('request-accept')
+.listen('AcceptStatusEvent',(data) => {
+    if(sender_id == data.accept_data.receiver_id){
+        $('.user-list[data-id="' + data.accept_data.sender_id + '"] .request-form').find('button').remove();
+        let html = `
+            <small class="text-secondary">Say Hi 👋</small>
+         `;
+        $('.user-list[data-id="' + data.accept_data.sender_id + '"] .request-form').append(html);
+        $('.user-list').on('click',function(){
+            $('#chat-container').html('');
+            $('.chat-section').show();
+            $('.title-click').hide();
+            loadOldChat();
+        })
+    }
 });

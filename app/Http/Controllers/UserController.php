@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\AcceptStatusEvent;
 use App\Events\DeleteRequestEvent;
 use App\Models\Chat;
 use App\Models\User;
@@ -120,11 +121,11 @@ class UserController extends Controller
     // load old requested data
     public function LoadingRequest(Request $request)
     {
-        $request_data = RequestMessage::where('sender_id',Auth::id())
-                    ->orWhere('receiver_id',Auth::id())->get();
         try {
+            $request_data = RequestMessage::where('sender_id',Auth::id())
+                    ->orWhere('receiver_id',Auth::id())->get();
             return response()->json(['success' => true, 'data' => $request_data]);
-        } catch (\Exception $e) {
+        }   catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
         }
     }
@@ -133,12 +134,15 @@ class UserController extends Controller
     public function UpdateRequest(Request $request)
     {
         // $request_data = RequestMessage::where()
-        $request_data = RequestMessage::findOrFail($request->id);
-        $request_data->update([
-            'status' => $request->status,
-        ]);
-        if($request->status == 'reject'){
-            return response()->json(['success'=> true , 'data' => $request->all()]);
+        try {
+            $request_data = RequestMessage::findOrFail($request->id);
+            $request_data->update([
+                'status' => $request->status,
+            ]);
+            event(new AcceptStatusEvent($request->all()));
+            return response()->json(['success'=> true, 'data' => $request->all() ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()]);
         }
 
     }
