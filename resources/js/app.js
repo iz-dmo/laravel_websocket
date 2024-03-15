@@ -277,6 +277,30 @@ $(document).ready(function(){
         });
         
     });
+
+    // delete conversation
+    $(document).on('submit','.delete-chat-form',function(e){
+        e.preventDefault();
+        $.ajax({
+            headers : {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            url : "delete-conversations",
+            type : "POST",
+            data : {
+                sender_id : sender_id,
+                receiver_id : receiver_id,
+            },
+            success : function(response){
+                if(response.success){
+                    loadOldChat();
+                }else{
+                    alert(response.error)
+                }
+            }
+        });
+        
+    });
     
 });
 
@@ -414,6 +438,25 @@ function loadOldRequest(){
                             let html = `
                                 <small class="text-secondary">Say Hi 👋</small>
                             `;
+                            var add_dir_delete = $('.user-list[data-id="' + old_request.receiver_id + '"]');
+                            var delete_chat = $('<form>');
+                            delete_chat.addClass('delete-chat-form');
+
+                            var deleteHiddenInput = $('<input>');
+                            deleteHiddenInput.attr('type', 'hidden');
+                            deleteHiddenInput.attr('name', 'id');
+                            deleteHiddenInput.attr('data-id', old_request.receiver_id);
+                            deleteHiddenInput.attr('id', 'delete_chat');
+                            delete_chat.append(deleteHiddenInput);
+
+                            var deleteButton = $('<button>');
+                            deleteButton.attr('id', old_request.sender_id + '-delete-conversation-btn');
+                            deleteButton.addClass('btn btn-danger btn-sm delete-conversation-btn');
+                            deleteButton.attr('type', 'submit');
+                            deleteButton.text('Delete Conversation');
+                            delete_chat.append(deleteButton);
+
+                            add_dir_delete.append(delete_chat);
                             add_dir.append(html);
                             $('.user-list[data-id="' + old_request.receiver_id + '"]').on('click',function(){
                                 $('#chat-container').html('');
@@ -429,6 +472,25 @@ function loadOldRequest(){
                             let html = `
                                 <small class="text-secondary">Say Hi 👋</small>
                             `;
+                            let dir_receiver_delete = $('.user-list[data-id="' + old_request.sender_id + '"]');
+                            var delete_chat = $('<form>');
+                            delete_chat.addClass('delete-chat-form');
+
+                            var deleteHiddenInput = $('<input>');
+                            deleteHiddenInput.attr('type', 'hidden');
+                            deleteHiddenInput.attr('name', 'id');
+                            deleteHiddenInput.attr('data-id', old_request.receiver_id);
+                            deleteHiddenInput.attr('id', 'delete_chat');
+                            delete_chat.append(deleteHiddenInput);
+
+                            var deleteButton = $('<button>');
+                            deleteButton.attr('id', old_request.sender_id + '-delete-conversation-btn');
+                            deleteButton.addClass('btn btn-danger btn-sm delete-conversation-btn');
+                            deleteButton.attr('type', 'submit');
+                            deleteButton.text('Delete Conversation');
+                            delete_chat.append(deleteButton);
+
+                            dir_receiver_delete.append(delete_chat);
                             dir_receiver.append(html);
                             $('.user-list[data-id="' + old_request.sender_id + '"]').on('click',function(){
                                 $('#chat-container').html('');
@@ -438,6 +500,7 @@ function loadOldRequest(){
                                 
                             });
                         }
+                    
                     }
                 });
             }else{
@@ -576,7 +639,25 @@ Echo.private('request-accept')
         $('.user-list[data-id="' + data.accept_data.sender_id + '"] .request-form').find('button').remove();
         let html = `
             <small class="text-secondary">Say Hi 👋</small>
-         `;
+            `;
+        var delete_chat = $('<form>');
+        delete_chat.addClass('delete-chat-form');
+
+        var deleteHiddenInput = $('<input>');
+        deleteHiddenInput.attr('type', 'hidden');
+        deleteHiddenInput.attr('name', 'id');
+        deleteHiddenInput.attr('data-id', data.accept_data.id);
+        deleteHiddenInput.attr('id','delete_chat');
+        delete_chat.append(deleteHiddenInput);
+
+        var deleteButton = $('<button>');
+        deleteButton.attr('id', data.accept_data.sender_id + '-delete-conversation-btn');
+        deleteButton.addClass('btn btn-danger delete-conversation-btn');
+        deleteButton.attr('type', 'submit');
+        deleteButton.text('Delete Conversation');
+        delete_chat.append(deleteButton);
+
+        $('.user-list[data-id="' + data.accept_data.sender_id + '"]').append(delete_chat);
         $('.user-list[data-id="' + data.accept_data.sender_id + '"] .request-form').append(html);
         $('.user-list[data-id="' + data.accept_data.sender_id+'').on('click',function(){
             $('#chat-container').html('');

@@ -123,7 +123,7 @@ class UserController extends Controller
     {
         try {
             $request_data = RequestMessage::where('sender_id',Auth::id())
-                    ->orWhere('receiver_id',Auth::id())->get();
+                    ->orWhere('receiver_id',Auth::id())->orderBy('id','desc')->get();
             return response()->json(['success' => true, 'data' => $request_data]);
         }   catch (\Exception $e) {
             return response()->json(['success' => false, 'msg' => $e->getMessage()]);
@@ -133,7 +133,6 @@ class UserController extends Controller
     // Update Request Message
     public function UpdateRequest(Request $request)
     {
-        // $request_data = RequestMessage::where()
         try {
             $request_data = RequestMessage::findOrFail($request->id);
             $request_data->update([
@@ -145,6 +144,25 @@ class UserController extends Controller
             return response()->json(['error' => $e->getMessage()]);
         }
 
+    }
+
+    public function DeleteConversation(Request $request)
+    {
+        try {
+            $request->validate([
+                'receiver_id' => 'required|exists:users,id',
+            ]);
+            Chat::where(function ($query) use ($request) {
+                $query->where('sender_id', Auth::id())
+                      ->where('receiver_id', $request->receiver_id);
+            })->orWhere(function ($query) use ($request) {
+                $query->where('sender_id', $request->receiver_id)
+                      ->where('receiver_id', Auth::id());
+            })->delete();
+            return response()->json(['success' => true, 'data' => 'Deleted Conversation success!']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()]);
+        }
     }
 
 }

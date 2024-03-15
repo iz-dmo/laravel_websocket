@@ -36,6 +36,7 @@ Route::post('request-messages',[UserController::class,'MessageRequest'])->name('
 Route::get('request-old-messages',[UserController::class,'LoadingRequest'])->name('request-old-messages');
 Route::post('delete-request-messages',[UserController::class,'DeleteRequest'])->name('delete-request-messages');
 Route::post('update-request-messages',[UserController::class,'UpdateRequest'])->name('update-request-messages');
+Route::post('delete-conversations',[UserController::class,'DeleteConversation'])->name('delete-conversations');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
